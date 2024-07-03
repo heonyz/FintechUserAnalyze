@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <property>
+        <name>javax.jdo.option.ConnectionURL</name>
+        <value>jdbc:mysql://mysql-server:3306/hive_metastore?useSSL=false&amp;allowPublicKeyRetrieval=true</value>
+    </property>
+    <property>
+        <name>javax.jdo.option.ConnectionDriverName</name>
+        <value>com.mysql.cj.jdbc.Driver</value>
+    </property>
+    <property>
+        <name>javax.jdo.option.ConnectionUserName</name>
+        <value>hiveuser</value>
+    </property>
+    <property>
+        <name>javax.jdo.option.ConnectionPassword</name>
+        <value>1234</value>
+    </property>
+    <property>
+        <name>datanucleus.schema.autoCreateAll</name>
+        <value>true</value>
+    </property>
+
+    <!-- Hive Metastore URI -->
+    <property>
+        <name>hive.metastore.uris</name>
+        <value>thrift://hive:9083</value>
+        <description>Hive Metastore Thrift URI</description>
+    </property>
+
+    <!-- Change default filesystem to local -->
+    <property>
+        <name>hive.metastore.warehouse.dir</name>
+        <value>/app/spark-warehouse</value>
+    </property>
+
+    <!-- Change warehouse directory to local -->
+    <property>
+        <name>hive.metastore.warehouse.dir</name>
+        <value>file:/app/spark-warehouse</value>
+        <description>Location of Hive warehouse directory in local file system</description>
+    </property>
+
+    <!-- Hive Execution and Optimization Settings -->
+    <property>
+        <name>hive.aux.jars.path</name>
+        <value>file:///opt/hive/lib/mysql-connector-j-8.0.33.jar</value>
+    </property>
+    <property>
+        <name>hive.execution.engine</name>
+        <value>tez</value>
+    </property>
+    <property>
+        <name>hive.exec.dynamic.partition</name>
+        <value>true</value>
+    </property>
+    <property>
+        <name>hive.exec.dynamic.partition.mode</name>
+        <value>nonstrict</value>
+    </property>
+</configuration>
