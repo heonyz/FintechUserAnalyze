@@ -28,4 +28,24 @@ object UserSessionAnalysisFunction1 {
     println(s"3단계 완료: session_id2AggrInfoRDD 개수 = ${session_id2AggrInfoRDD.count()}")
     session_id2AggrInfoRDD.take(10).foreach(println) // 샘플 데이터 출력
 
+
+    println("4단계: 누적기 등록 시작")
+    val sessionAggrStatAccumulator = new SessionAggrStatAccumulator
+    sc.register(sessionAggrStatAccumulator)
+    println("4단계 완료: 누적기 등록 완료")
+
+
+    println("5단계: 필터링 및 누적기 업데이트 시작")
+    val filterSession_id2AggrInfoRDD = Demand1Function.filterSessionAndAggrStat(
+      session_id2AggrInfoRDD,
+      taskParam,
+      sessionAggrStatAccumulator
+    )
+    val filteredRDDCount = filterSession_id2AggrInfoRDD.count()
+    println(s"5단계 완료: Filter된 RDD 개수 = $filteredRDDCount")
+    filterSession_id2AggrInfoRDD.take(10).foreach(println) // 샘플 데이터 출력
+    println("5단계 완료: 누적기 값 상세 출력")
+    sessionAggrStatAccumulator.value.foreach { case (key, value) =>
+      println(s"  $key -> $value")
+    }
 }
