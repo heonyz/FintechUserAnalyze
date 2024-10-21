@@ -54,5 +54,22 @@ object UserSessionAnalysisFunction1 {
     val session_idDetailRDD = Demand1Function.getSession_id2detailRDD(filterSession_id2AggrInfoRDD, SessionId2ActionRDD)
     println(s"6단계 완료: session_idDetailRDD 개수 = ${session_idDetailRDD.count()}")
     session_idDetailRDD.take(10).foreach(println) // 샘플 데이터 출력
+
+
+    println("7단계: 통계 데이터 계산 및 MySQL 저장 시작")
+    Demand1Function.calculateAndPersisAggrStat(sessionAggrStatAccumulator.value, taskUUID)
+    println("7단계 완료: 통계 데이터 저장 완료")
+
+
+    println("8단계: 체크포인트 설정 시작")
+    sc.setCheckpointDir("file:///app/spark-warehouse/filterSession_id2AggrInfoRDD")
+    filterSession_id2AggrInfoRDD.checkpoint()
+    sc.setCheckpointDir("file:///app/spark-warehouse/filterSession_id2AggrInfoRDD")
+    session_idDetailRDD.checkpoint()
+
+
+    println("==== Demand1 종료 ====")
+    (filterSession_id2AggrInfoRDD,session_idDetailRDD,SessionId2ActionRDD)
+
   }
 }
