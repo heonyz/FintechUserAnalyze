@@ -153,4 +153,76 @@ object Demand1Function {
 
     filteredSessionIdToAggrInfoRdd
   }
+
+  /**
+   * 주어진 방문 시간에 따라 해당 시간대의 카운트를 accumulator에 추가한다.
+   *
+   * @param visitLength 방문 시간(초)
+   * @param accumulator 누적 통계 Accumulator
+   */
+  def calculateVisitLength(visitLength: Long, accumulator: AccumulatorV2[String, mutable.HashMap[String, Int]]) = {
+    if (visitLength >= 1 && visitLength <= 3) {
+      accumulator.add(Constants.TIME_PERIOD_1s_3s)
+    } else if (visitLength >= 4 && visitLength <= 6) {
+      accumulator.add(Constants.TIME_PERIOD_4s_6s)
+    } else if (visitLength >= 7 && visitLength <= 9) {
+      accumulator.add(Constants.TIME_PERIOD_7s_9s)
+    } else if (visitLength >= 10 && visitLength <= 30) {
+      accumulator.add(Constants.TIME_PERIOD_10s_30s)
+    } else if (visitLength > 30 && visitLength <= 60) {
+      accumulator.add(Constants.TIME_PERIOD_30s_60s)
+    } else if (visitLength > 60 && visitLength <= 180) {
+      accumulator.add(Constants.TIME_PERIOD_1m_3m)
+    } else if (visitLength > 180 && visitLength <= 600) {
+      accumulator.add(Constants.TIME_PERIOD_3m_10m)
+    } else if (visitLength > 600 && visitLength <= 1800) {
+      accumulator.add(Constants.TIME_PERIOD_10m_30m)
+    } else if (visitLength > 1800) {
+      accumulator.add(Constants.TIME_PERIOD_30m)
+    }
+  }
+
+  /**
+   * 주어진 단계 길이에 따라 해당 단계 범위의 카운트를 accumulator에 추가한다.
+   *
+   * @param stepLength 단계 길이
+   * @param accumulator 누적 통계 Accumulator
+   */
+  def calculateStepLength(stepLength: Long, accumulator: AccumulatorV2[String, mutable.HashMap[String, Int]]) = {
+    if (stepLength >= 1 && stepLength <= 3) {
+      accumulator.add(Constants.STEP_PERIOD_1_3)
+    } else if (stepLength >= 4 && stepLength <= 6) {
+      accumulator.add(Constants.STEP_PERIOD_4_6)
+    } else if (stepLength >= 7 && stepLength <= 9) {
+      accumulator.add(Constants.STEP_PERIOD_7_9)
+    } else if (stepLength >= 10 && stepLength <= 30) {
+      accumulator.add(Constants.STEP_PERIOD_10_30)
+    } else if (stepLength > 30 && stepLength <= 60) {
+      accumulator.add(Constants.STEP_PERIOD_30_60)
+    } else if (stepLength > 60) {
+      accumulator.add(Constants.STEP_PERIOD_60)
+    }
+  }
+
+  /**
+   * 세션 집계 정보와 사용자 행동 데이터를 map-side join하여 상세 데이터를 생성한 후 RDD로 반환한다.
+   *
+   * @param sessionIdToAggrInfoRdd (sessionId, aggrInfo) 형태의 작은 RDD
+   * @param sessionIdToActionRdd (sessionId, UserVisitAction) 형태의 RDD
+   * @return map-side join을 수행한 (sessionId, UserVisitAction) 형태의 RDD
+   */
+  def getSessionIdToDetailRdd(sessionIdToAggrInfoRdd: RDD[(String, String)],
+                              sessionIdToActionRdd: RDD[(String, UserVisitAction)]) = {
+    val broadcastAggrInfoMap = sessionIdToAggrInfoRdd.collectAsMap()
+    val broadcastAggrInfo = sessionIdToActionRdd.context.broadcast(broadcastAggrInfoMap)
+
+    val mapSideJoinRdd = sessionIdToActionRdd.mapPartitions { partition =>
+      val aggrInfoMap = broadcastAggrInfo.value
+      partition.flatMap { case (sessionId, action) =>
+        aggrInfoMap.get(sessionId).map(aggrInfo => (sessionId, action))
+      }
+    }
+
+    mapSideJoinRdd
+  }
 }

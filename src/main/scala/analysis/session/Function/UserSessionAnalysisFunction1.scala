@@ -48,4 +48,11 @@ object UserSessionAnalysisFunction1 {
     sessionAggrStatAccumulator.value.foreach { case (key, value) =>
       println(s"  $key -> $value")
     }
+
+
+    println("6단계: 상세 정보와 사용자 행동 데이터 집계 시작" )
+    val session_idDetailRDD = Demand1Function.getSession_id2detailRDD(filterSession_id2AggrInfoRDD, SessionId2ActionRDD)
+    println(s"6단계 완료: session_idDetailRDD 개수 = ${session_idDetailRDD.count()}")
+    session_idDetailRDD.take(10).foreach(println) // 샘플 데이터 출력
+  }
 }
