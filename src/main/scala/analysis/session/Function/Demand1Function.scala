@@ -225,4 +225,82 @@ object Demand1Function {
 
     mapSideJoinRdd
   }
+
+  /**
+   * 누적된 통계 데이터를 바탕으로 방문 시간과 단계 길이 비율을 계산하고,
+   * MySQL에 저장하기 위한 SessionAggrStat 객체를 생성하여 RDD로 변환 후 저장한다.
+   *
+   * @param statsMap 누적 통계 정보를 담은 Map
+   * @param taskUuid 현재 작업의 UUID
+   */
+  def calculateAndPersistAggrStat(statsMap: mutable.HashMap[String, Int], taskUuid: String) = {
+    val sessionCount = statsMap(Constants.SESSION_COUNT).toDouble
+
+    val visitLength1s3s    = statsMap.getOrElse(Constants.TIME_PERIOD_1s_3s, 0)
+    val visitLength4s6s    = statsMap.getOrElse(Constants.TIME_PERIOD_4s_6s, 0)
+    val visitLength7s9s    = statsMap.getOrElse(Constants.TIME_PERIOD_7s_9s, 0)
+    val visitLength10s30s  = statsMap.getOrElse(Constants.TIME_PERIOD_10s_30s, 0)
+    val visitLength30s60s  = statsMap.getOrElse(Constants.TIME_PERIOD_30s_60s, 0)
+    val visitLength1m3m    = statsMap.getOrElse(Constants.TIME_PERIOD_1m_3m, 0)
+    val visitLength3m10m   = statsMap.getOrElse(Constants.TIME_PERIOD_3m_10m, 0)
+    val visitLength10m30m  = statsMap.getOrElse(Constants.TIME_PERIOD_10m_30m, 0)
+    val visitLength30m     = statsMap.getOrElse(Constants.TIME_PERIOD_30m, 0)
+
+    val stepLength1to3     = statsMap.getOrElse(Constants.STEP_PERIOD_1_3, 0)
+    val stepLength4to6     = statsMap.getOrElse(Constants.STEP_PERIOD_4_6, 0)
+    val stepLength7to9     = statsMap.getOrElse(Constants.STEP_PERIOD_7_9, 0)
+    val stepLength10to30   = statsMap.getOrElse(Constants.STEP_PERIOD_10_30, 0)
+    val stepLength30to60   = statsMap.getOrElse(Constants.STEP_PERIOD_30_60, 0)
+    val stepLength60       = statsMap.getOrElse(Constants.STEP_PERIOD_60, 0)
+
+    val visitLength1s3sRatio   = NumberUtils.formatDouble(visitLength1s3s / sessionCount, 2)
+    val visitLength4s6sRatio   = NumberUtils.formatDouble(visitLength4s6s / sessionCount, 2)
+    val visitLength7s9sRatio   = NumberUtils.formatDouble(visitLength7s9s / sessionCount, 2)
+    val visitLength10s30sRatio = NumberUtils.formatDouble(visitLength10s30s / sessionCount, 2)
+    val visitLength30s60sRatio = NumberUtils.formatDouble(visitLength30s60s / sessionCount, 2)
+    val visitLength1m3mRatio   = NumberUtils.formatDouble(visitLength1m3m / sessionCount, 2)
+    val visitLength3m10mRatio  = NumberUtils.formatDouble(visitLength3m10m / sessionCount, 2)
+    val visitLength10m30mRatio = NumberUtils.formatDouble(visitLength10m30m / sessionCount, 2)
+    val visitLength30mRatio    = NumberUtils.formatDouble(visitLength30m / sessionCount, 2)
+
+    val stepLength1to3Ratio   = NumberUtils.formatDouble(stepLength1to3 / sessionCount, 2)
+    val stepLength4to6Ratio   = NumberUtils.formatDouble(stepLength4to6 / sessionCount, 2)
+    val stepLength7to9Ratio   = NumberUtils.formatDouble(stepLength7to9 / sessionCount, 2)
+    val stepLength10to30Ratio = NumberUtils.formatDouble(stepLength10to30 / sessionCount, 2)
+    val stepLength30to60Ratio = NumberUtils.formatDouble(stepLength30to60 / sessionCount, 2)
+    val stepLength60Ratio     = NumberUtils.formatDouble(stepLength60 / sessionCount, 2)
+
+    val sessionAggrStat = SessionAggrStat(
+      taskUuid,
+      sessionCount.toInt,
+      visitLength1s3sRatio,
+      visitLength4s6sRatio,
+      visitLength7s9sRatio,
+      visitLength10s30sRatio,
+      visitLength30s60sRatio,
+      visitLength1m3mRatio,
+      visitLength3m10mRatio,
+      visitLength10m30mRatio,
+      visitLength30mRatio,
+      stepLength1to3Ratio,
+      stepLength4to6Ratio,
+      stepLength7to9Ratio,
+      stepLength10to30Ratio,
+      stepLength30to60Ratio,
+      stepLength60Ratio
+    )
+
+    import spark.implicits._
+    val sessionAggrStatRdd = sc.makeRDD(Array(sessionAggrStat))
+    sessionAggrStatRdd
+      .toDF()
+      .write
+      .format("jdbc")
+      .option("url", ConfigurationManager.config.getString(Constants.JDBC_URL))
+      .option("dbtable", ConfigurationManager.config.getString(Constants.JDBC_TABLE_SESSIONAGGRSTATRDD))
+      .option("user", ConfigurationManager.config.getString(Constants.JDBC_USER))
+      .option("password", ConfigurationManager.config.getString(Constants.JDBC_PASSWORD))
+      .mode(SaveMode.Append)
+      .save()
+  }
 }
